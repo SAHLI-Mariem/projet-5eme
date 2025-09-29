@@ -1,0 +1,46 @@
+- name: Build, Push et Déploiement Docker Spring Boot
+  hosts: localhost
+  vars:
+    docker_hub_user: mariemsahli123
+    docker_hub_password: "{{ lookup('env','DOCKER_HUB_PASSWORD') }}"
+    image_name: monprojet-spring
+    image_full: "{{ docker_hub_user }}/{{ image_name }}:latest"
+
+  tasks:
+    - name: Build l'image Docker de Spring Boot
+      community.docker.docker_image:
+        name: "{{ image_full }}"
+        build:
+          path: "{{ playbook_dir }}"   # <-- utilise le dossier du playbook
+        tag: latest
+        state: present
+
+    - name: Login sur Docker Hub
+      community.docker.docker_login:
+        username: "{{ docker_hub_user }}"
+        password: "{{ docker_hub_password }}"
+
+    - name: Push l'image sur Docker Hub
+      community.docker.docker_image:
+        name: "{{ image_full }}"
+        tag: latest
+        push: yes
+
+- name: Déployer sur Workers
+  hosts: workers
+  become: yes
+  vars:
+    image_full: mariemsahli123/monprojet-spring:latest
+  tasks:
+    - name: Pull l'image Docker depuis Docker Hub
+      community.docker.docker_image:
+        name: "{{ image_full }}"
+        source: pull
+
+    - name: Lancer le conteneur Docker
+      community.docker.docker_container:
+        name: monprojet-spring
+        image: "{{ image_full }}"
+        state: started
+        ports:
+          - "8080:8080"
