@@ -1,0 +1,39 @@
+- name: Build Docker sur Master
+  hosts: localhost
+  tasks:
+    - name: Build l'image Docker de Spring Boot
+      community.docker.docker_image:
+        name: mariemsahli123/monprojet-spring  # nom complet pour Docker Hub
+        build:
+          path: /home/mariem
+        tag: latest
+        state: present
+
+    - name: Login sur Docker Hub
+      community.docker.docker_login:
+        username: mariemsahli123
+        password: "{{ docker_hub_password }}"   # à définir dans un vault ou variable
+
+    - name: Push l'image sur Docker Hub
+      community.docker.docker_image:
+        name: mariemsahli123/monprojet-spring
+        tag: latest
+        push: yes
+
+- name: Déployer sur Worker
+  hosts: workers
+  become: yes
+  tasks:
+    - name: Pull l'image Docker depuis Docker Hub
+      community.docker.docker_image:
+        name: mariemsahli123/monprojet-spring
+        tag: latest
+        source: pull
+
+    - name: Lancer le conteneur Docker
+      community.docker.docker_container:
+        name: monprojet-spring
+        image: mariemsahli123/monprojet-spring:latest
+        state: started
+        ports:
+          - "8080:8080"
