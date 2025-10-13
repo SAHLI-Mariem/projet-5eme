@@ -3,6 +3,9 @@ pipeline {
  environment {
         IMAGE_NAME = "mariemsahli123/monprojet-spring"
         IMAGE_TAG  = "${env.BUILD_NUMBER}"
+        KUBE_NAMESPACE = "devops"
+        DEPLOYMENT_NAME = "spring-app"
+        SERVICE_NAME = "spring-service"
     }
     stages {
         stage('Git') {
@@ -80,8 +83,33 @@ pipeline {
                 
             }
         }
-
-     
         
+        
+        stage('Deploy to Kubernetes') {
+            steps {
+                echo '🚀 Déploiement sur Kubernetes...'
+                sh '''
+                    kubectl config current-context
+
+                    kubectl set image deployment/${DEPLOYMENT_NAME} \
+                        spring-app=${IMAGE_NAME}:${IMAGE_TAG} \
+                        -n ${KUBE_NAMESPACE} --record
+
+                    kubectl rollout status deployment/${DEPLOYMENT_NAME} -n ${KUBE_NAMESPACE}
+
+                    kubectl get pods -n ${KUBE_NAMESPACE}
+                '''
+            }
+        }
     }
+
+    post {
+        success {
+            echo "✅ Pipeline terminé avec succès. L’application est déployée sur Kubernetes (namespace: ${KUBE_NAMESPACE})."
+        }
+        failure {
+            echo "❌ Échec du pipeline. Consulte les logs pour identifier le problème."
+        }
+    }
+
 }
