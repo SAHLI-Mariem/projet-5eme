@@ -1,0 +1,40 @@
+# spring-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spring-app
+  namespace: devops
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: spring-app
+  template:
+    metadata:
+      labels:
+        app: spring-app
+    spec:
+      containers:
+        - name: spring-app
+          image: mariemsahli123/monprojet-spring:latest
+          ports:
+            - containerPort: 8089
+          envFrom:
+            - configMapRef:
+                name: spring-config
+            - secretRef:
+                name: spring-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spring-service
+  namespace: devops
+spec:
+  type: NodePort
+  selector:
+    app: spring-app
+  ports:
+    - port: 8089
+      targetPort: 8089   # doit correspondre au containerPort
+      nodePort: 30080
